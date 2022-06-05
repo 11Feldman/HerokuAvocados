@@ -4,7 +4,7 @@ import numpy as np
 from dash.dependencies import Output, Input
 
 data = pd.read_csv("avocado.csv")
-data["Date"] = pd.to_datetime(data["Date"], format="%Y-%m-%d")
+data["Date"] = pd.to_datetime(data["Date"], format="%Y-%m")
 data.sort_values("Date", inplace=True)
 
 external_stylesheets = [
@@ -164,4 +164,4 @@ def update_charts(region, avocado_type, start_date, end_date):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)
