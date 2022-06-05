@@ -1,7 +1,11 @@
-from dash import Dash,dcc,html
+from dash import Dash,dcc,html,dash_table
+import plotly.express as px
 import pandas as pd
 import numpy as np
 from dash.dependencies import Output, Input
+
+df = px.data.iris()  # iris is a pandas DataFrame
+fig = px.scatter(df, x="sepal_width", y="sepal_length")
 
 data = pd.read_csv("avocado.csv")
 data["Date"] = pd.to_datetime(data["Date"], format="%Y-%m")
@@ -100,6 +104,10 @@ app.layout = html.Div(
                     ),
                     className="card",
                 ),
+                html.Div(
+                    children=dcc.Graph(figure=fig),
+                    className='card'
+                )
             ],
             className="wrapper",
         ),
@@ -108,7 +116,10 @@ app.layout = html.Div(
 
 
 @app.callback(
-    [Output("price-chart", "figure"), Output("volume-chart", "figure")],
+    [
+        Output("price-chart", "figure"), 
+        Output("volume-chart", "figure"),
+    ],
     [
         Input("region-filter", "value"),
         Input("type-filter", "value"),
