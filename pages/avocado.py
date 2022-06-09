@@ -1,11 +1,10 @@
-from dash import dcc,html
+from dash import dcc,html,callback
 import plotly.express as px
 import pandas as pd
 import numpy as np
 from dash.dependencies import Output, Input
+import plotly.io as pio
 
-df = px.data.iris()  # iris is a pandas DataFrame
-fig = px.scatter(df, x="sepal_width", y="sepal_length")
 
 data = pd.read_csv("avocado.csv")
 data["Date"] = pd.to_datetime(data["Date"], format="%Y-%m")
@@ -81,19 +80,33 @@ layout = html.Div(
         html.Div(
             children=[
                 html.Div(
-                    children=dcc.Graph(
-                        id="price-chart", config={"displayModeBar": False},
-                    ),
+                    children=[
+                            dcc.Loading([
+                                dcc.Graph(
+                                    id="price-chart", 
+                                    config={"displayModeBar": False},
+                                    className="card")
+                                ],
+                                type='cube'
+                            )
+                    ],
                     className="card",
                 ),
                 html.Div(
-                    children=dcc.Graph(
-                        id="volume-chart", config={"displayModeBar": False},
-                    ),
+                    children=[
+                        dcc.Loading([
+                            dcc.Graph(
+                                id="volume-chart", 
+                                config={"displayModeBar": False},
+                                className="card")
+                            ],
+                            type='cube'
+                        )
+                    ],
                     className="card",
                 ),
                 html.Div(
-                    children=dcc.Graph(figure=fig),
+                    children=dcc.Loading([dcc.Graph(id="graph-iris",className='card')], type='cube'),
                     className='card'
                 )
             ],
@@ -103,60 +116,78 @@ layout = html.Div(
 )
 
 
-# @app.callback(
-#     [
-#         Output("price-chart", "figure"), 
-#         Output("volume-chart", "figure"),
-#     ],
-#     [
-#         Input("region-filter", "value"),
-#         Input("type-filter", "value"),
-#         Input("date-range", "start_date"),
-#         Input("date-range", "end_date"),
-#     ],
-# )
-# def update_charts(region, avocado_type, start_date, end_date):
-#     mask = (
-#         (data.region == region)
-#         & (data.type == avocado_type)
-#         & (data.Date >= start_date)
-#         & (data.Date <= end_date)
-#     )
-#     filtered_data = data.loc[mask, :]
-#     price_chart_figure = {
-#         "data": [
-#             {
-#                 "x": filtered_data["Date"],
-#                 "y": filtered_data["AveragePrice"],
-#                 "type": "lines",
-#                 "hovertemplate": "$%{y:.2f}<extra></extra>",
-#             },
-#         ],
-#         "layout": {
-#             "title": {
-#                 "text": "Average Price of Avocados",
-#                 "x": 0.05,
-#                 "xanchor": "left",
-#             },
-#             "xaxis": {"fixedrange": True},
-#             "yaxis": {"tickprefix": "$", "fixedrange": True},
-#             "colorway": ["#17B897"],
-#         },
-#     }
+@callback(
+    [
+        Output("price-chart", "figure"), 
+        Output("volume-chart", "figure"),
+        Output("graph-iris",'figure')
+    ],
+    [
+        Input("region-filter", "value"),
+        Input("type-filter", "value"),
+        Input("date-range", "start_date"),
+        Input("date-range", "end_date"),
+    ],
+)
+def update_charts(region, avocado_type, start_date, end_date):
+    mask = (
+        (data.region == region)
+        & (data.type == avocado_type)
+        & (data.Date >= start_date)
+        & (data.Date <= end_date)
+    )
+    filtered_data = data.loc[mask, :]
 
-#     volume_chart_figure = {
-#         "data": [
-#             {
-#                 "x": filtered_data["Date"],
-#                 "y": filtered_data["Total Volume"],
-#                 "type": "lines",
-#             },
-#         ],
-#         "layout": {
-#             "title": {"text": "Avocados Sold", "x": 0.05, "xanchor": "left"},
-#             "xaxis": {"fixedrange": True},
-#             "yaxis": {"fixedrange": True},
-#             "colorway": ["#E12D39"],
-#         },
-#     }
-#     return price_chart_figure, volume_chart_figure
+
+    def graficoLineas(data_frame,x,y,colorLine='white',title=None,template='plotly_dark',tickprefix=None):
+        fig = px.line(
+            data_frame=data_frame,
+            x=x,
+            y=y,
+            template=template
+        )
+        
+        fig['data'][0]['line']['color']=colorLine
+
+        fig.update_layout(
+            title_text = title,
+            title_x=0.05,
+            title_xanchor='left'
+        )
+
+        fig.update_xaxes(
+            fixedrange=True,
+        )
+
+        fig.update_yaxes(
+            tickprefix=tickprefix,
+            fixedrange=True,
+        )
+
+        return fig
+
+
+    price_chart_figure=graficoLineas(
+        data_frame=filtered_data,
+        x='Date',
+        y='AveragePrice',
+        colorLine='white',
+        title='Average Price of Avocados',
+        tickprefix='$'
+    )
+
+    volume_chart_figure=graficoLineas(
+        data_frame=filtered_data,
+        x='Date',
+        y='Total Volume',
+        colorLine='red',
+        title='Avocados Sold',
+        tickprefix='$'
+    )
+
+    template = 'plotly_dark'
+
+    df = px.data.iris()  # iris is a pandas DataFrame
+    figIris = px.scatter(df, x="sepal_width", y="sepal_length",template=template)
+
+    return price_chart_figure, volume_chart_figure, figIris
